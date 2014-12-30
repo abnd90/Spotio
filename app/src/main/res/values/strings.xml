@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">VolumioSpotifyHelper</string>
+    <string name="title_activity_main">SendToVolumio</string>
+    <string name="action_settings">Settings</string>
+    <string name="title_activity_share">Send To Volumio</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="hostname">Hostname</string>
+    <string name="replace_playlist">Replace current playlist.</string>
+    <string name="add_playlist">Add to playlist.</string>
+    <string name="preference_file_key">preferences</string>
+
+</resources>
