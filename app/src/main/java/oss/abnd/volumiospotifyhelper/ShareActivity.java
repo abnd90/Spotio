@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.Menu;
@@ -15,6 +14,7 @@ import android.widget.EditText;
 import android.widget.RadioGroup;
 import android.widget.Toast;
 
+import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
 
 import java.net.MalformedURLException;
@@ -30,19 +30,18 @@ public class ShareActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-
     MaterialDialog dialog =
             new  MaterialDialog.Builder(this)
                 .title("Share link with Volumio")
                 .customView(R.layout.sharelayout, true)
                 .positiveText("Share")
-                .positiveColor(Color.parseColor("#3F51B5"))
                 .negativeText("Cancel")
-                .negativeColor(Color.parseColor("#3F51B5"))
                 .autoDismiss(false)
                 .callback(new MaterialDialog.ButtonCallback() {
                     @Override
                     public void onPositive(MaterialDialog dialog) {
+
+                        dialog.getActionButton( DialogAction.POSITIVE ).setEnabled( false );
 
                         View customView = dialog.getCustomView();
                         EditText hostname = (EditText) customView.findViewById(R.id.hostname);
@@ -64,20 +63,23 @@ public class ShareActivity extends Activity {
                         } else if (checkedButtonId == R.id.radioButtonReplace) {
                             task = vConn.replaceSpotifyPlaylist(sUri_);
                         } else {
-                            showToast("Fatal error occurred.");
+                            showErrorToast("Fatal error occurred.");
                             closeAct(dialog);
+                            return;
                         }
 
                         long result = -1;
                         try {
-                            result = (long) task.get(5000, TimeUnit.MILLISECONDS);
+                            result = (long) task.get( 10, TimeUnit.SECONDS );
                             task.cancel(true);
                         } catch (TimeoutException te) {
-                            showToast("Timeout while sharing link.");
+                            showErrorToast("Timeout while sharing link.");
                             closeAct(dialog);
+                            return;
                         } catch (Exception e) {
-                            showToast("Unknown error sharing link.");
+                            showErrorToast("Unknown error sharing link.");
                             closeAct(dialog);
+                            return;
                         }
 
                         if (result == 0) {
@@ -123,7 +125,6 @@ public class ShareActivity extends Activity {
             }
         } else {
             finish();
-            // Handle other intents, such as being started from the home screen
         }
     }
 
