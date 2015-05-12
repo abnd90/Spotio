@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -16,6 +17,7 @@ import android.widget.Toast;
 
 import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
+import oss.abnd.volumiospotifyhelper.ViewAndUpdatePreferencesActivity;
 
 import java.net.MalformedURLException;
 import java.util.concurrent.TimeUnit;
@@ -30,90 +32,10 @@ public class ShareActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-    MaterialDialog dialog =
-            new  MaterialDialog.Builder(this)
-                .title("Share link with Volumio")
-                .customView(R.layout.sharelayout, true)
-                .positiveText("Share")
-                .negativeText("Cancel")
-                .autoDismiss(false)
-                .callback(new MaterialDialog.ButtonCallback() {
-                    @Override
-                    public void onPositive(MaterialDialog dialog) {
-
-                        dialog.getActionButton( DialogAction.POSITIVE ).setEnabled( false );
-
-                        View customView = dialog.getCustomView();
-                        EditText hostname = (EditText) customView.findViewById(R.id.hostname);
-                        VolumioConnection vConn = new VolumioConnection(hostname.getText().toString());
-
-                        Context context = getApplicationContext();
-                        SharedPreferences sharedPref = context.getSharedPreferences(
-                                getString(R.string.preference_file_key), Context.MODE_PRIVATE);
-                        SharedPreferences.Editor editor = sharedPref.edit();
-                        editor.putString(getString(R.string.hostname), hostname.getText().toString() );
-                        editor.commit();
-
-                        RadioGroup radioGrp = (RadioGroup) customView.findViewById(R.id.radioGroup);
-                        int checkedButtonId = radioGrp.getCheckedRadioButtonId();
-
-                        AsyncTask task = null;
-                        if (checkedButtonId == R.id.radioButtonAdd) {
-                            task = vConn.addSpotifyPlaylist(sUri_);
-                        } else if (checkedButtonId == R.id.radioButtonReplace) {
-                            task = vConn.replaceSpotifyPlaylist(sUri_);
-                        } else {
-                            showErrorToast("Fatal error occurred.");
-                            closeAct(dialog);
-                            return;
-                        }
-
-                        long result = -1;
-                        try {
-                            result = (long) task.get( 10, TimeUnit.SECONDS );
-                            task.cancel(true);
-                        } catch (TimeoutException te) {
-                            showErrorToast("Timeout while sharing link.");
-                            closeAct(dialog);
-                            return;
-                        } catch (Exception e) {
-                            showErrorToast("Unknown error sharing link.");
-                            closeAct(dialog);
-                            return;
-                        }
-
-                        if (result == 0) {
-                            showToast("Success sending link to Volumio.");
-                        } else {
-                            showToast("Error sending link to Volumio.");
-                        }
-                        closeAct(dialog);
-                    }
-
-                    private void closeAct(MaterialDialog dialog) {
-                        dialog.dismiss();
-                        finish();
-                    }
-
-                    @Override
-                    public void onNegative(MaterialDialog dialog) {
-                        closeAct(dialog);
-                    }
-                })
-                .dismissListener(new MaterialDialog.OnDismissListener() {
-                    @Override
-                    public void onDismiss(DialogInterface dialog) {
-                        finish();
-                    }
-                })
-                .show();
-
-        EditText hostEditText = (EditText) dialog.getCustomView().findViewById(R.id.hostname);
         Context context = getApplicationContext();
         SharedPreferences sharedPref = context.getSharedPreferences(
                 getString(R.string.preference_file_key), Context.MODE_PRIVATE);
         String hostname = sharedPref.getString(getString(R.string.hostname), "" );
-        hostEditText.setText( hostname );
 
         Intent intent = getIntent();
         String action = intent.getAction();
@@ -122,12 +44,48 @@ public class ShareActivity extends Activity {
         if (Intent.ACTION_SEND.equals(action) && type != null) {
             if ("text/plain".equals(type)) {
                 handleSendText(intent); // Handle text being sent
+                SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+                String ipAddress = prefs.getString(ViewAndUpdatePreferencesActivity.IP_VOLUMIO,"");
+                Boolean replacePlaylist = prefs.getBoolean(ViewAndUpdatePreferencesActivity.REPLACE_PLAYLIST, false);
+                handleVolumioConnection(ipAddress, replacePlaylist);
             }
         } else {
             finish();
         }
     }
-
+    
+    void handleVolumioConnection(String ipAddress, Boolean replacePlaylist) {
+    	VolumioConnection vConn = new VolumioConnection(ipAddress);
+    	
+    	AsyncTask task =  null;
+    	if (replacePlaylist) {
+    		task = vConn.replaceSpotifyPlaylist(sUri_);
+    	} else {
+    		task = vConn.addSpotifyPlaylist(sUri_);
+    	}
+  
+        long result = -1;
+        try {
+        	result = (long) task.get( 10, TimeUnit.SECONDS );
+	        task.cancel(true);
+	    } catch (TimeoutException te) {
+	        showErrorToast("Timeout while sharing link.");
+	        finish();
+	        return;
+	    } catch (Exception e) {
+	        showErrorToast("Unknown error sharing link.");
+	        finish();
+	        return;
+	    }
+	
+	    if (result == 0) {
+	        showToast("Success sending link to Volumio.");
+	    } else {
+	        showToast("Error sending link to Volumio.");
+	    }
+	    finish();
+    }
+    
     void handleSendText( Intent intent ) {
         String sharedText = intent.getStringExtra(Intent.EXTRA_TEXT);
         if (sharedText != null) {
