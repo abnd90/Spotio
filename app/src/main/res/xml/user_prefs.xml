@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    android:key="@+id/pref_screen" >
+
+    <EditTextPreference
+        android:dialogMessage="Enter Your Hostname IP"
+        android:dialogTitle="@string/action_settings"
+        android:key="ipvolumio"
+        android:negativeButtonText="Cancel"
+        android:positiveButtonText="Submit"
+        android:title="@string/hostname" 
+        >
+    </EditTextPreference>
+	
+    
+    <CheckBoxPreference
+        android:title="@string/replace_playlist"
+        android:key="replacePlaylist"
+        >
+    </CheckBoxPreference>
+</PreferenceScreen>
